@@ -1,6 +1,6 @@
 # hermes-mind
 
-Thin Hermes memory-provider plugin around the unchanged `mind` 7.0.0 single-file artifact.
+Thin Hermes memory-provider plugin around the pinned `mind` 7.0.0 single-file artifact.
 
 ## Scope
 
@@ -11,13 +11,47 @@ Thin Hermes memory-provider plugin around the unchanged `mind` 7.0.0 single-file
 - **Upstream maintenance stays native:** primary writes retain `MIND_AUTO_DREAM=1`. During provider initialization, the adapter checks mind's native `scheduler.json` due signal and may run one real `mind dream` when pending work is stale or reaches ten signals. A single profile-local timestamp prevents repeating the same no-write maintenance attempt; this is activity-triggered, not a background scheduler or periodic promise.
 - Hermes built-in `MEMORY.md` / `USER.md` and LCM remain separate and unchanged. Selecting this provider is additive, not a replacement.
 
-The bundled artifact is copied unchanged from upstream `Da7-Tech/mind` tag `v7.0.0`, peeled commit `ade5b2a20e37773e2ae58640b13b59840b739177`, with SHA-256:
+## Upstream provenance and license
+
+`setup_mind.py` is the only download path. It fetches `mind.py` from upstream
+`Da7-Tech/mind` tag `v7.0.0` at peeled commit
+`ade5b2a20e37773e2ae58640b13b59840b739177`:
+
+```text
+https://raw.githubusercontent.com/Da7-Tech/mind/ade5b2a20e37773e2ae58640b13b59840b739177/mind.py
+```
+
+The pinned SHA-256 is:
 
 ```text
 ae2fc389b3b09c93cb432ab55b71063d98b400da6b18d6bc178322bc8f3fcf69
 ```
 
-The plugin verifies this hash before activation and uses the active Hermes runtime's `sys.executable`; it does not install a package, call a network service, or require another model/API/embedding backend.
+The setup script downloads to a temporary file, verifies this SHA-256, and then
+atomically replaces the destination. Hash or network failure leaves an existing
+artifact unchanged. Re-running setup when the destination already has this hash
+is a no-op. Runtime provider initialization never downloads anything; it only
+checks the local artifact and reports the setup command when it is missing or
+modified. The provider uses the active Hermes runtime's `sys.executable` and
+does not install a package or require another model/API/embedding backend.
+
+The fetched `mind.py` is copyright (c) 2026 Da7-Tech and MIT licensed. The
+repository keeps the upstream attribution and license text in `LICENSE`.
+
+## Installation
+
+After placing this repository at `$HERMES_HOME/plugins/hermes-mind`, run the
+explicit setup step from this directory:
+
+```bash
+"$HERMES_PYTHON" setup_mind.py
+```
+
+Set `HERMES_PYTHON` to the active Hermes runtime Python first. `python3 setup_mind.py` is also sufficient when that interpreter is the active runtime.
+The destination defaults to `vendor/mind.py`; use `--destination PATH` for an
+isolated or alternate checkout. The artifact is intentionally ignored by git,
+so setup is required on a fresh clone. If setup has not been run, provider
+status reports the exact command to run; there is no automatic runtime fetch.
 
 ## Profile-safe state
 
@@ -46,7 +80,7 @@ Search returns only bounded structured `{id, text}` hits. It does not include th
 
 ## Activation
 
-Place this repository at `$HERMES_HOME/plugins/hermes-mind`, then select it in the active profile's configuration:
+Select it in the active profile's configuration:
 
 ```yaml
 memory:
@@ -57,7 +91,9 @@ Start a new Hermes process after changing provider configuration. For a running 
 
 ## Verification
 
-Run from this repository with the active Hermes runtime Python so the real `agent.memory_provider` API and token-estimate helper are imported. Set `HERMES_PYTHON` to that interpreter's absolute path first:
+Run from this repository with the active Hermes runtime Python so the real
+`agent.memory_provider` API, token-estimate helper, and setup tests are imported.
+Set `HERMES_PYTHON` to that interpreter's absolute path first:
 
 ```bash
 "$HERMES_PYTHON" -m unittest discover -s tests -v

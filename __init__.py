@@ -1,8 +1,8 @@
-"""Thin Hermes memory provider for the pinned, local ``mind`` artifact.
+"""Thin Hermes memory provider for the pinned, setup-managed ``mind`` artifact.
 
 The adapter exposes one explicit action tool, a short cached startup snapshot,
-and no automatic per-turn recall or extraction. Upstream ``mind.py`` remains
-vendored and unchanged.
+and no automatic per-turn recall or extraction. Upstream ``mind.py`` is fetched
+only by the explicit setup script and is never downloaded at runtime.
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 MIND_VERSION = "7.0.0"
 MIND_SHA256 = "ae2fc389b3b09c93cb432ab55b71063d98b400da6b18d6bc178322bc8f3fcf69"
 MIND_SCRIPT = Path(__file__).resolve().parent / "vendor" / "mind.py"
+MIND_SETUP_SCRIPT = Path(__file__).resolve().parent / "setup_mind.py"
 
 # Prompt/tool budgets are measured with Hermes' active runtime helper when it is
 # available. Character ceilings remain a cheap hard stop for broken runtimes.
@@ -253,7 +254,20 @@ class MindMemoryProvider(MemoryProvider):
             return False
 
     def unavailable_reason(self) -> str:
-        return f"missing or modified bundled mind {MIND_VERSION} artifact"
+        setup_command = f"{sys.executable} {MIND_SETUP_SCRIPT}"
+        if not MIND_SCRIPT.is_file():
+            return (
+                f"mind {MIND_VERSION} artifact is missing at {MIND_SCRIPT}; "
+                f"run `{setup_command}` from the plugin directory"
+            )
+        try:
+            actual_sha256 = hashlib.sha256(MIND_SCRIPT.read_bytes()).hexdigest()
+        except OSError as exc:
+            return f"mind {MIND_VERSION} artifact cannot be read at {MIND_SCRIPT}: {exc}"
+        return (
+            f"mind {MIND_VERSION} artifact at {MIND_SCRIPT} has SHA-256 {actual_sha256}, "
+            f"expected {MIND_SHA256}; rerun `{setup_command}` from the plugin directory"
+        )
 
     def initialize(self, session_id: str, **kwargs: Any) -> None:
         self._reset_state()

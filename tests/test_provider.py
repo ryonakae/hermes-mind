@@ -298,6 +298,16 @@ class MindProviderTests(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     provider.initialize("test-session")
 
+    def test_missing_artifact_reports_explicit_setup_command(self):
+        with tempfile.TemporaryDirectory(prefix="hermes-mind-test-") as temp:
+            missing_script = Path(temp) / "missing" / "mind.py"
+            with patch.object(self.plugin, "MIND_SCRIPT", missing_script):
+                provider = self.plugin.MindMemoryProvider()
+                reason = provider.unavailable_reason()
+                self.assertIn("missing", reason)
+                self.assertIn("setup_mind.py", reason)
+                self.assertIn("python", reason)
+
     def test_initialize_rejects_foreign_user_symlink_before_subprocess_and_resets_state(self):
         with tempfile.TemporaryDirectory(prefix="hermes-mind-test-") as temp:
             profile = Path(temp) / "profile"
