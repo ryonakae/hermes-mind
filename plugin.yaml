@@ -1,0 +1,7 @@
+name: hermes-mind
+version: 0.1.0
+description: "Thin Hermes memory provider backed by pinned, local mind 7.0.0"
+author: "Ryo Nakae"
+kind: memory
+provides_tools:
+  - mind
